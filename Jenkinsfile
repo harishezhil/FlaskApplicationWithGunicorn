@@ -4,6 +4,7 @@ pipeline {
     environment {
         VENV_PATH = 'venv'
         PORT = '8000'
+        REQUIREMENTS_PATH = 'H:\\nextrurn\\NEXTURN_PROJECTS\\M6_DEVOPS_ASSINGMENT\\A5_FlaskPipelineApplication\\flaskapp\\requirements.txt'
     }
     
     stages {
@@ -19,15 +20,15 @@ pipeline {
             steps {
                 script {
                     // Create a virtual environment and upgrade pip
-                    bat 'python -m venv venv'
-                    bat 'venv\\Scripts\\activate.bat && python -m pip install --upgrade pip'
+                    bat "python -m venv ${env.VENV_PATH}"
+                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && python -m pip install --upgrade pip"
                     
-                    // Install dependencies from requirements.txt inside the nested folder
-                    bat '''
-                        venv\\Scripts\\activate.bat && (
-                            pip install -r simple_flask_app-main/requirements.txt --verbose
+                    // Install dependencies from the specified requirements.txt path
+                    bat """
+                        ${env.VENV_PATH}\\Scripts\\activate.bat && (
+                            pip install -r ${env.REQUIREMENTS_PATH} --verbose
                         )
-                    '''
+                    """
                 }
             }
         }
@@ -35,8 +36,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run pytest inside the nested folder
-                    bat 'venv\\Scripts\\activate.bat && cd simple_flask_app-main && python -m pytest'
+                    // Run pytest inside the cloned repository folder
+                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && cd simple_flask_app-main && python -m pytest"
                 }
             }
         }
@@ -45,21 +46,19 @@ pipeline {
             steps {
                 script {
                     // Create a Windows batch script to run the Flask server
-                    bat '''
+                    bat """
                         echo @echo off > start_server.bat
                         echo set FLASK_APP=simple_flask_app-main/app.py >> start_server.bat
                         echo set FLASK_ENV=production >> start_server.bat
-                        echo call venv\\Scripts\\activate.bat >> start_server.bat
+                        echo call ${env.VENV_PATH}\\Scripts\\activate.bat >> start_server.bat
                         echo python -m flask run --host=127.0.0.1 --port=%PORT% >> start_server.bat
-                    '''
+                    """
                     
                     // Start the server in the background
                     bat 'start /B start_server.bat'
                     
                     // Wait for the server to start
-                    bat '''
-                        powershell -Command "Start-Sleep -Seconds 15"
-                    '''
+                    bat 'powershell -Command "Start-Sleep -Seconds 15"'
                 }
             }
         }
@@ -68,7 +67,7 @@ pipeline {
             steps {
                 script {
                     // Verify that the application is running
-                    bat '''
+                    bat """
                         powershell -Command "try { \
                             \$response = Invoke-WebRequest -Uri http://127.0.0.1:%PORT% -UseBasicParsing; \
                             if (\$response.StatusCode -eq 200) { \
@@ -82,7 +81,7 @@ pipeline {
                             Write-Host 'Failed to connect to application: ' \$_.Exception.Message; \
                             exit 1; \
                         }"
-                    '''
+                    """
                 }
             }
         }
@@ -91,7 +90,7 @@ pipeline {
             steps {
                 script {
                     // Perform a health check
-                    bat '''
+                    bat """
                         powershell -Command "try { \
                             \$response = Invoke-WebRequest -Uri http://127.0.0.1:%PORT%/health -UseBasicParsing; \
                             \$content = \$response.Content | ConvertFrom-Json; \
@@ -106,7 +105,7 @@ pipeline {
                             Write-Host 'Health check failed: ' \$_.Exception.Message; \
                             exit 1; \
                         }"
-                    '''
+                    """
                 }
             }
         }
@@ -116,7 +115,7 @@ pipeline {
         always {
             script {
                 // Clean up running processes
-                bat '''
+                bat """
                     powershell -Command "try { \
                         Get-Process -Name python -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; \
                         Get-Process -Name flask -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; \
@@ -124,17 +123,17 @@ pipeline {
                     } catch { \
                         exit 0; \
                     }"
-                '''
+                """
             }
         }
         failure {
             script {
                 // Log installed packages on failure
                 echo 'Pipeline failed! Checking virtual environment status...'
-                bat '''
+                bat """
                     echo Listing installed packages:
-                    venv\\Scripts\\activate.bat && pip list
-                '''
+                    ${env.VENV_PATH}\\Scripts\\activate.bat && pip list
+                """
             }
         }
     }
