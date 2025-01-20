@@ -4,7 +4,6 @@ pipeline {
     environment {
         VENV_PATH = 'venv'
         PORT = '8000'
-        REQUIREMENTS_PATH = 'H:\\nextrurn\\NEXTURN_PROJECTS\\M6_DEVOPS_ASSINGMENT\\A5_FlaskPipelineApplication\\flaskapp\\requirements.txt'
     }
     
     stages {
@@ -23,10 +22,10 @@ pipeline {
                     bat "python -m venv ${env.VENV_PATH}"
                     bat "${env.VENV_PATH}\\Scripts\\activate.bat && python -m pip install --upgrade pip"
                     
-                    // Install dependencies from the specified requirements.txt path
+                    // Install dependencies from the root-level requirements.txt
                     bat """
                         ${env.VENV_PATH}\\Scripts\\activate.bat && (
-                            pip install -r ${env.REQUIREMENTS_PATH} --verbose
+                            pip install -r requirements.txt --verbose
                         )
                     """
                 }
@@ -36,8 +35,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run pytest inside the cloned repository folder
-                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && cd simple_flask_app-main && python -m pytest"
+                    // Run pytest inside the tests directory
+                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && cd tests && python -m pytest"
                 }
             }
         }
@@ -48,7 +47,7 @@ pipeline {
                     // Create a Windows batch script to run the Flask server
                     bat """
                         echo @echo off > start_server.bat
-                        echo set FLASK_APP=simple_flask_app-main/app.py >> start_server.bat
+                        echo set FLASK_APP=app.py >> start_server.bat
                         echo set FLASK_ENV=production >> start_server.bat
                         echo call ${env.VENV_PATH}\\Scripts\\activate.bat >> start_server.bat
                         echo python -m flask run --host=127.0.0.1 --port=%PORT% >> start_server.bat
