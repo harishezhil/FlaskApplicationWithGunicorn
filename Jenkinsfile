@@ -36,7 +36,7 @@ pipeline {
             steps {
                 script {
                     // Run pytest inside the tests directory
-                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && cd tests && python -m pytest"
+                    bat "${env.VENV_PATH}\\Scripts\\activate.bat && python -m pytest tests"
                 }
             }
         }
